@@ -1,1 +1,48 @@
-/* Add styles here */
+body {
+    font-family: sans-serif;
+    padding: 2rem;
+    background-color: #f5f5f5;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+#search-btn {
+    display: block;
+    margin: 0 auto 2rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    background-color: #007bff;
+    color: #fff;
+    cursor: pointer;
+}
+
+#results {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.category {
+    border: 1px solid #ccc;
+    padding: 1rem;
+}
+
+.category h2 {
+    margin-top: 0;
+}
+
+.news-item {
+    margin-bottom: 1rem;
+}
+
+.news-item a {
+    text-decoration: none;
+    color: #000;
+}
+
+.news-item a:hover {
+    text-decoration: underline;
+}
