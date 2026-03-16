@@ -13,7 +13,7 @@ const keywords = [
 ];
 
 searchBtn.addEventListener('click', () => {
-    resultsDiv.innerHTML = '<p>Searching for news...</p>';
+    resultsDiv.innerHTML = '<p>뉴스 검색 중...</p>';
 
     const fetchPromises = keywords.map(keyword => {
         // Using Google News RSS feed. `tbs=qdr:d3` filters for the last 3 days.
@@ -38,7 +38,7 @@ searchBtn.addEventListener('click', () => {
                         <h2>${keyword}</h2>
                 `;
                 if (items.length === 0) {
-                    newsHtml += '<p>No news found.</p>';
+                    newsHtml += '<p>No result within 3 days</p>';
                 } else {
                     items.forEach(item => {
                         const title = item.querySelector("title").textContent;
@@ -61,7 +61,7 @@ searchBtn.addEventListener('click', () => {
                 return `
                     <div class="category">
                         <h2>${keyword}</h2>
-                        <p>Error fetching news. Check the console for more details.</p>
+                        <p>뉴스 검색 중 오류가 발생했습니다. 자세한 내용은 콘솔을 확인하세요.</p>
                     </div>
                 `;
             });
