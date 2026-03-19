@@ -13,59 +13,100 @@ const keywords = [
     '애플뮤직'
 ];
 
-// Google Apps Script 웹 앱 URL
-const GAS_URL = 'https://script.google.com/macros/s/AKfycby_R8v_v_3p_4Rz6h_C_B_l_y_L_R_j_g/exec'; // 여기에 본인의 웹 앱 URL을 입력하세요
+/**
+ * Fetches RSS feed using a CORS proxy and parses the XML.
+ * @param {string} keyword The keyword to search for.
+ * @returns {Promise<Object>} Object containing keyword and items.
+ */
+async function fetchRSS(keyword) {
+    const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(keyword)}&hl=ko&gl=KR&ceid=KR:ko`;
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
 
-searchBtn.addEventListener('click', () => {
-    resultsDiv.innerHTML = '<p>뉴스 검색 중...</p>';
-    const searchDate = new Date();
-    searchDateDiv.innerText = `검색 시간: ${searchDate.toLocaleString('ko-KR')}`;
+    try {
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const data = await response.json();
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+        
+        const items = Array.from(xmlDoc.querySelectorAll("item")).map(item => ({
+            title: item.querySelector("title")?.textContent || "No Title",
+            link: item.querySelector("link")?.textContent || "#",
+            pubDate: item.querySelector("pubDate")?.textContent || "",
+            source: item.querySelector("source")?.textContent || "Unknown Source"
+        })).slice(0, 5); // Limit to top 5 news items per keyword
 
-    const fetchPromises = keywords.map(keyword => {
-        const url = `${GAS_URL}?keyword=${encodeURIComponent(keyword)}`;
+        return { keyword, items };
+    } catch (err) {
+        console.error(`Error fetching RSS for ${keyword}:`, err);
+        return { keyword, items: [], error: true };
+    }
+}
 
-        return fetch(url)
-            .then(response => {
-                console.log(`Response for ${keyword}:`, response);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log(`Data for ${keyword}:`, data);
-                let newsHtml = `
-                    <div class="category">
-                        <h2>${keyword}</h2>
-                `;
-                if (data.items.length === 0) {
-                    newsHtml += '<p>최신 뉴스가 없습니다.</p>';
-                } else {
-                    data.items.forEach(item => {
-                        newsHtml += `
-                            <div class="news-item">
-                                <a href="${item.link}" target="_blank" rel="noopener noreferrer">${item.title}</a>
-                                <p>${item.pubDate}</p>
+/**
+ * Renders the results to the DOM.
+ * @param {Array} results Array of result objects.
+ */
+function renderResults(results) {
+    resultsDiv.innerHTML = results.map(res => {
+        let newsHtml = `
+            <section class="keyword-card">
+                <div class="card-header">
+                    <h2>${res.keyword}</h2>
+                    <span class="status-badge ${res.items.length > 0 ? 'active' : 'empty'}">
+                        ${res.items.length > 0 ? '최신 뉴스' : '데이터 없음'}
+                    </span>
+                </div>
+                <div class="news-list">
+        `;
+
+        if (res.error) {
+            newsHtml += '<p class="error-msg">데이터를 가져오는 중 오류가 발생했습니다.</p>';
+        } else if (res.items.length === 0) {
+            newsHtml += '<p class="no-data">최근 24시간 내 뉴스가 없습니다.</p>';
+        } else {
+            res.items.forEach(item => {
+                const formattedDate = new Date(item.pubDate).toLocaleDateString('ko-KR', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit'
+                });
+                newsHtml += `
+                    <article class="news-item">
+                        <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="news-link">
+                            <h3 class="news-title">${item.title}</h3>
+                            <div class="news-meta">
+                                <span class="news-source">${item.source}</span>
+                                <span class="news-date">${formattedDate}</span>
                             </div>
-                        `;
-                    });
-                }
-                newsHtml += '</div>';
-                return newsHtml;
-            })
-            .catch(err => {
-                console.error(`'${keyword}' 뉴스 검색 중 오류 발생:`, err);
-                return `
-                    <div class="category">
-                        <h2>${keyword}</h2>
-                        <p>뉴스 로딩 중 오류가 발생했습니다. 자세한 내용은 콘솔을 확인해주세요.</p>
-                    </div>
+                        </a>
+                    </article>
                 `;
             });
-    });
+        }
 
-    Promise.all(fetchPromises)
-        .then(htmlContents => {
-            resultsDiv.innerHTML = htmlContents.join('');
-        });
+        newsHtml += `
+                </div>
+            </section>
+        `;
+        return newsHtml;
+    }).join('');
+}
+
+searchBtn.addEventListener('click', async () => {
+    searchBtn.disabled = true;
+    searchBtn.textContent = '검색 중...';
+    resultsDiv.innerHTML = '<div class="loading-state"><p>실시간 뉴스를 분석하고 있습니다...</p><div class="spinner"></div></div>';
+    
+    const searchDate = new Date();
+    searchDateDiv.innerText = `마지막 업데이트: ${searchDate.toLocaleString('ko-KR')}`;
+
+    const fetchPromises = keywords.map(keyword => fetchRSS(keyword));
+    const allResults = await Promise.all(fetchPromises);
+
+    renderResults(allResults);
+    
+    searchBtn.disabled = false;
+    searchBtn.textContent = '데이터 새로고침';
 });

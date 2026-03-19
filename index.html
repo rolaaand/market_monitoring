@@ -1,17 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Last Deployment: 2026-03-16 -->
-    <title>Market Monitoring</title>
+    <title>Market Monitoring Dashboard</title>
     <link href='./style.css' rel='stylesheet'>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@100..900&display=swap" rel="stylesheet">
 </head>
 <body>
-    <h1>Market Monitoring</h1>
-    <button id="search-btn">Search</button>
-    <div id="search-date"></div>
-    <div id="results"></div>
-    <script defer type="text/javascript" src="./main.js"></script>
+    <div class="texture-bg"></div>
+    <header>
+        <div class="header-content">
+            <h1>Market Monitoring</h1>
+            <p class="subtitle">Google News RSS 기반 실시간 트렌드 분석</p>
+            <div class="controls">
+                <button id="search-btn" class="glow-button">데이터 새로고침</button>
+                <div id="search-date" class="search-info"></div>
+            </div>
+        </div>
+    </header>
+
+    <main id="results" class="results-grid">
+        <!-- Results will be dynamically injected here -->
+        <div class="empty-state">
+            <p>버튼을 클릭하여 모니터링을 시작하세요.</p>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Market Monitoring System. All rights reserved.</p>
+    </footer>
+
+    <script defer type="module" src="./main.js"></script>
 </body>
 </html>
