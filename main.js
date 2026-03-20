@@ -18,28 +18,68 @@ const keywords = [
  * @param {string} keyword The keyword to search for.
  * @returns {Promise<Object>} Object containing keyword and items.
  */
+/**
+ * Fetches RSS feed using a CORS proxy and parses the XML.
+ * @param {string} keyword The keyword to search for.
+ * @returns {Promise<Object>} Object containing keyword and items.
+ */
 async function fetchRSS(keyword) {
-    // 1. Simplify query to get more results from Google
     const searchQuery = keyword; 
     const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(searchQuery)}&hl=ko&gl=KR&ceid=KR:ko`;
     
-    // 2. Add timestamp to bypass proxy cache
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}&_=${Date.now()}`;
+    // Attempt 1: Using corsproxy.io (Direct XML)
+    try {
+        const primaryProxy = `https://corsproxy.io/?url=${encodeURIComponent(rssUrl)}&_=${Date.now()}`;
+        const response = await fetch(primaryProxy);
+        if (response.ok) {
+            const xmlString = await response.text();
+            return parseAndFilterRSS(xmlString, keyword);
+        }
+    } catch (err) {
+        console.warn(`Primary proxy failed for ${keyword}, trying fallback...`, err);
+    }
+
+    // Attempt 2: Fallback to allorigins.win (JSON wrapped)
+    try {
+        const fallbackProxy = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}&_=${Date.now()}`;
+        const response = await fetch(fallbackProxy);
+        if (response.ok) {
+            const data = await response.json();
+            // AllOrigins wraps the content in a 'contents' property
+            return parseAndFilterRSS(data.contents, keyword);
+        }
+    } catch (err) {
+        console.error(`All proxies failed for ${keyword}:`, err);
+        return { keyword, items: [], error: true };
+    }
+
+    return { keyword, items: [], error: true };
+}
+
+/**
+ * Parses XML string and applies date and keyword filters.
+ * @param {string} xmlString The raw XML string from RSS feed.
+ * @param {string} keyword The keyword used for filtering.
+ * @returns {Object} Result object with filtered items.
+ */
+function parseAndFilterRSS(xmlString, keyword) {
+    if (!xmlString) return { keyword, items: [] };
 
     try {
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        
-        const data = await response.json();
         const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+        const xmlDoc = parser.parseFromString(xmlString, "text/xml");
         
-        // 3. More flexible filtering (3.5 days = 84 hours to account for timezone offsets)
+        // Basic check for valid XML
+        if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
+            throw new Error("XML Parsing Error");
+        }
+
+        // Filter threshold: 3.5 days (84 hours) to account for timezone differences
         const filterThreshold = new Date();
         filterThreshold.setHours(filterThreshold.getHours() - (24 * 3 + 12)); 
 
         // Fruit-related keywords to filter out from '멜론' results
-        const fruitKeywords = ['과일', '수확', '재배', '농가', '산지', '당도', '품종', '꼭지', '농민', '출하', '재배지'];
+        const fruitKeywords = ['과일', '수확', '재배', '농가', '산지', '당도', '품종', '꼭지', '농민', '출하', '재배지', '농업', '농촌'];
 
         const items = Array.from(xmlDoc.querySelectorAll("item"))
             .filter(item => {
@@ -47,10 +87,10 @@ async function fetchRSS(keyword) {
                 const pubDateStr = item.querySelector("pubDate")?.textContent;
                 const pubDate = pubDateStr ? new Date(pubDateStr) : null;
 
-                // Date filtering (within 3.5 days)
+                // 1. Date filtering
                 if (pubDate && pubDate < filterThreshold) return false;
 
-                // Keyword-based filtering for '멜론'
+                // 2. Keyword-based filtering for '멜론'
                 if (keyword === '멜론' && fruitKeywords.some(fk => title.includes(fk))) return false;
 
                 return true;
@@ -60,11 +100,11 @@ async function fetchRSS(keyword) {
                 link: item.querySelector("link")?.textContent || "#",
                 pubDate: item.querySelector("pubDate")?.textContent || "",
                 source: item.querySelector("source")?.textContent || "Unknown Source"
-            })).slice(0, 7); // Increased limit per keyword
+            })).slice(0, 7);
 
         return { keyword, items };
     } catch (err) {
-        console.error(`Error fetching RSS for ${keyword}:`, err);
+        console.error(`Parsing error for ${keyword}:`, err);
         return { keyword, items: [], error: true };
     }
 }

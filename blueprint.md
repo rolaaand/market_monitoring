@@ -21,8 +21,9 @@ A web-based dashboard that monitors specific keywords using Google News RSS feed
     - Refined search for "멜론" (Melon): Uses a broad search query to maximize result retrieval, then filters out fruit-related titles (e.g., '농민', '출하', '당도') on the client side for higher precision.
     - Time-based filtering: Displays news from the last 3.5 days (84 hours), accounting for UTC/KST timezone offsets.
 - **Data Reliability:**
-    - Proxy Cache Busting: Appends a unique timestamp to each request to ensure fresh data from the CORS proxy.
-    - Result Expansion: Increased display limit to 7 items per keyword to provide a more comprehensive view.
+    - Multi-Proxy Fallback: Uses `corsproxy.io` as the primary proxy for direct XML retrieval. If it fails, it automatically falls back to `api.allorigins.win` to ensure high availability.
+    - Proxy Cache Busting: Appends a unique timestamp to each request to ensure fresh data.
+    - Result Expansion: Increased display limit to 7 items per keyword.
 
 ## Plan & Steps
 1.  **Refactor `main.js`:**
