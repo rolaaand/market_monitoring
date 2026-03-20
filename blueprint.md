@@ -6,7 +6,7 @@ A web-based dashboard that monitors specific keywords using Google News RSS feed
 ## Current State
 - **Technologies:** HTML, CSS, JavaScript (Framework-less).
 - **Functionality:** Uses a Google Apps Script (GAS) URL to fetch news data for a predefined list of keywords.
-- **UI:** Basic grid layout with minimal styling.
+- **UI:** Modern grid layout with `oklch` colors, depth effects, and responsiveness.
 
 ## Target State & Features
 - **RSS Integration:** Switch from GAS to direct Google News RSS feed fetching using a CORS proxy (e.g., AllOrigins).
@@ -24,22 +24,31 @@ A web-based dashboard that monitors specific keywords using Google News RSS feed
     - Multi-Proxy Fallback: Uses `corsproxy.io` as the primary proxy for direct XML retrieval. If it fails, it automatically falls back to `api.allorigins.win` to ensure high availability.
     - Proxy Cache Busting: Appends a unique timestamp to each request to ensure fresh data.
     - Result Expansion: Increased display limit to 7 items per keyword.
+- **Manual Curation:**
+    - **News Item Deletion:** Each news item features a 'delete' button (×) in the top-right corner, allowing users to manually remove irrelevant results from the UI with a smooth transition.
+    - **Empty State Feedback:** Automatically detects when all items in a category have been deleted and updates the category's status badge and display.
 
 ## Plan & Steps
 1.  **Refactor `main.js`:**
     - Implement `fetchRSS(keyword)` function using a CORS proxy.
     - Parse XML using `DOMParser`.
     - Update the rendering logic to handle the new data structure.
-2.  **Update `index.html`:**
+2.  **Implement Deletion Logic:**
+    - Add a delete button (`.delete-btn`) to the `news-item` template.
+    - Use event delegation on the results container to handle click events efficiently.
+    - Add a CSS transition for a smooth removal animation.
+    - Implement empty-state detection for curated lists.
+3.  **Update `index.html`:**
     - Add semantic HTML5 elements.
     - Enhance the header and layout structure.
     - Add a loading state indicator.
-3.  **Modernize `style.css`:**
+4.  **Modernize `style.css`:**
     - Implement a color palette using CSS variables with `oklch`.
     - Add glassmorphism or depth effects to cards.
     - Use modern typography and spacing.
     - Implement container queries for component responsiveness.
-4.  **Verification:**
+5.  **Verification:**
     - Test keyword searches.
+    - Verify manual deletion of news items and empty state transitions.
     - Check for console errors.
     - Validate responsive behavior.

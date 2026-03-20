@@ -139,6 +139,7 @@ function renderResults(results) {
                 });
                 newsHtml += `
                     <article class="news-item">
+                        <button class="delete-btn" aria-label="삭제">&times;</button>
                         <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="news-link">
                             <h3 class="news-title">${item.title}</h3>
                             <div class="news-meta">
@@ -158,6 +159,37 @@ function renderResults(results) {
         return newsHtml;
     }).join('');
 }
+
+// Add event delegation for deleting news items
+resultsDiv.addEventListener('click', (event) => {
+    if (event.target.classList.contains('delete-btn')) {
+        const newsItem = event.target.closest('.news-item');
+        if (newsItem) {
+            // Simple animation before removal
+            newsItem.style.opacity = '0';
+            newsItem.style.transform = 'translateX(20px)';
+            newsItem.style.transition = 'all 0.3s ease';
+            
+            setTimeout(() => {
+                const newsList = newsItem.parentElement;
+                newsItem.remove();
+                
+                // If list is empty after removal, show empty state
+                if (newsList && newsList.children.length === 0) {
+                    newsList.innerHTML = '<p class="no-data">모든 뉴스가 삭제되었습니다.</p>';
+                    const card = newsList.closest('.keyword-card');
+                    if (card) {
+                        const badge = card.querySelector('.status-badge');
+                        if (badge) {
+                            badge.textContent = '데이터 없음';
+                            badge.className = 'status-badge empty';
+                        }
+                    }
+                }
+            }, 300);
+        }
+    }
+});
 
 // Persistent state to store keyword results across searches
 let currentResults = [];

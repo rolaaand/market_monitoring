@@ -173,14 +173,41 @@ h1 {
 }
 
 .news-item {
+    position: relative;
     border-radius: var(--radius-md);
     transition: background 0.2s ease;
+}
+
+.delete-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: oklch(0% 0 0 / 10%);
+    color: var(--text-muted);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: all 0.2s ease;
+}
+
+.delete-btn:hover {
+    background: var(--accent);
+    color: white;
+    transform: scale(1.1);
 }
 
 .news-link {
     text-decoration: none;
     display: block;
-    padding: 1rem;
+    padding: 1.25rem 2rem 1.25rem 1rem; /* Added right padding for delete button */
     border-radius: var(--radius-md);
     border: 1px solid oklch(95% 0.01 260);
     transition: all 0.2s ease;
