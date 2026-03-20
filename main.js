@@ -19,7 +19,13 @@ const keywords = [
  * @returns {Promise<Object>} Object containing keyword and items.
  */
 async function fetchRSS(keyword) {
-    const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(keyword)}&hl=ko&gl=KR&ceid=KR:ko`;
+    let searchQuery = `${keyword} when:3d`;
+    if (keyword === '멜론') {
+        // Exclude fruit-related terms from the search query for the music service
+        searchQuery = `${keyword} -과일 -수확 -재배 -농가 -산지 -당도 -품종 when:3d`;
+    }
+
+    const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(searchQuery)}&hl=ko&gl=KR&ceid=KR:ko`;
     const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
 
     try {
@@ -30,12 +36,35 @@ async function fetchRSS(keyword) {
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(data.contents, "text/xml");
         
-        const items = Array.from(xmlDoc.querySelectorAll("item")).map(item => ({
-            title: item.querySelector("title")?.textContent || "No Title",
-            link: item.querySelector("link")?.textContent || "#",
-            pubDate: item.querySelector("pubDate")?.textContent || "",
-            source: item.querySelector("source")?.textContent || "Unknown Source"
-        })).slice(0, 5); // Limit to top 5 news items per keyword
+        // Fruit-related keywords to filter out from '멜론' results
+        const fruitKeywords = ['과일', '수확', '재배', '농가', '산지', '당도', '품종', '꼭지'];
+        
+        // Filter for news from the last 3 days (72 hours)
+        const threeDaysAgo = new Date();
+        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+        const items = Array.from(xmlDoc.querySelectorAll("item"))
+            .filter(item => {
+                // 1. Filter by date (within 3 days)
+                const pubDateStr = item.querySelector("pubDate")?.textContent;
+                if (pubDateStr) {
+                    const pubDate = new Date(pubDateStr);
+                    if (pubDate < threeDaysAgo) return false;
+                }
+
+                // 2. Filter by keyword (fruit exclusion for '멜론')
+                if (keyword === '멜론') {
+                    const title = item.querySelector("title")?.textContent || "";
+                    return !fruitKeywords.some(fk => title.includes(fk));
+                }
+                return true;
+            })
+            .map(item => ({
+                title: item.querySelector("title")?.textContent || "No Title",
+                link: item.querySelector("link")?.textContent || "#",
+                pubDate: item.querySelector("pubDate")?.textContent || "",
+                source: item.querySelector("source")?.textContent || "Unknown Source"
+            })).slice(0, 5); // Limit to top 5 news items per keyword
 
         return { keyword, items };
     } catch (err) {
