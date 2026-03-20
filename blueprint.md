@@ -18,8 +18,11 @@ A web-based dashboard that monitors specific keywords using Google News RSS feed
     - **Interactive Elements:** Glowing effects on buttons and cards.
 - **Keywords:** 멜론, 유튜브뮤직, 유튜브프리미엄, 유튜브프리미엄라이트, 스포티파이, 지니뮤직, 플로, 애플뮤직.
 - **Smart Filtering:**
-    - Refined search queries for "멜론" (Melon) to exclude fruit-related news (e.g., using negative keywords like `-과일`, `-수확`) and client-side title filtering.
-    - Time-based filtering: Only displays news items published within the last 3 days (72 hours) using both `when:3d` search parameter and client-side timestamp validation.
+    - Refined search for "멜론" (Melon): Uses a broad search query to maximize result retrieval, then filters out fruit-related titles (e.g., '농민', '출하', '당도') on the client side for higher precision.
+    - Time-based filtering: Displays news from the last 3.5 days (84 hours), accounting for UTC/KST timezone offsets.
+- **Data Reliability:**
+    - Proxy Cache Busting: Appends a unique timestamp to each request to ensure fresh data from the CORS proxy.
+    - Result Expansion: Increased display limit to 7 items per keyword to provide a more comprehensive view.
 
 ## Plan & Steps
 1.  **Refactor `main.js`:**

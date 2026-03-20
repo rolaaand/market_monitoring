@@ -19,14 +19,12 @@ const keywords = [
  * @returns {Promise<Object>} Object containing keyword and items.
  */
 async function fetchRSS(keyword) {
-    let searchQuery = `${keyword} when:3d`;
-    if (keyword === '멜론') {
-        // Exclude fruit-related terms from the search query for the music service
-        searchQuery = `${keyword} -과일 -수확 -재배 -농가 -산지 -당도 -품종 when:3d`;
-    }
-
+    // 1. Simplify query to get more results from Google
+    const searchQuery = keyword; 
     const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(searchQuery)}&hl=ko&gl=KR&ceid=KR:ko`;
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+    
+    // 2. Add timestamp to bypass proxy cache
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}&_=${Date.now()}`;
 
     try {
         const response = await fetch(proxyUrl);
@@ -36,27 +34,25 @@ async function fetchRSS(keyword) {
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(data.contents, "text/xml");
         
+        // 3. More flexible filtering (3.5 days = 84 hours to account for timezone offsets)
+        const filterThreshold = new Date();
+        filterThreshold.setHours(filterThreshold.getHours() - (24 * 3 + 12)); 
+
         // Fruit-related keywords to filter out from '멜론' results
-        const fruitKeywords = ['과일', '수확', '재배', '농가', '산지', '당도', '품종', '꼭지'];
-        
-        // Filter for news from the last 3 days (72 hours)
-        const threeDaysAgo = new Date();
-        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+        const fruitKeywords = ['과일', '수확', '재배', '농가', '산지', '당도', '품종', '꼭지', '농민', '출하', '재배지'];
 
         const items = Array.from(xmlDoc.querySelectorAll("item"))
             .filter(item => {
-                // 1. Filter by date (within 3 days)
+                const title = item.querySelector("title")?.textContent || "";
                 const pubDateStr = item.querySelector("pubDate")?.textContent;
-                if (pubDateStr) {
-                    const pubDate = new Date(pubDateStr);
-                    if (pubDate < threeDaysAgo) return false;
-                }
+                const pubDate = pubDateStr ? new Date(pubDateStr) : null;
 
-                // 2. Filter by keyword (fruit exclusion for '멜론')
-                if (keyword === '멜론') {
-                    const title = item.querySelector("title")?.textContent || "";
-                    return !fruitKeywords.some(fk => title.includes(fk));
-                }
+                // Date filtering (within 3.5 days)
+                if (pubDate && pubDate < filterThreshold) return false;
+
+                // Keyword-based filtering for '멜론'
+                if (keyword === '멜론' && fruitKeywords.some(fk => title.includes(fk))) return false;
+
                 return true;
             })
             .map(item => ({
@@ -64,7 +60,7 @@ async function fetchRSS(keyword) {
                 link: item.querySelector("link")?.textContent || "#",
                 pubDate: item.querySelector("pubDate")?.textContent || "",
                 source: item.querySelector("source")?.textContent || "Unknown Source"
-            })).slice(0, 5); // Limit to top 5 news items per keyword
+            })).slice(0, 7); // Increased limit per keyword
 
         return { keyword, items };
     } catch (err) {
