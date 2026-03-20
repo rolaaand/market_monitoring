@@ -159,18 +159,50 @@ function renderResults(results) {
     }).join('');
 }
 
+// Persistent state to store keyword results across searches
+let currentResults = [];
+
 searchBtn.addEventListener('click', async () => {
     searchBtn.disabled = true;
-    searchBtn.textContent = '검색 중...';
-    resultsDiv.innerHTML = '<div class="loading-state"><p>실시간 뉴스를 분석하고 있습니다...</p><div class="spinner"></div></div>';
+    searchBtn.textContent = '데이터 분석 중...';
     
+    // Check if this is the initial search (when no results are stored yet)
+    const isInitialSearch = currentResults.length === 0;
+    
+    // Update the last update timestamp
     const searchDate = new Date();
     searchDateDiv.innerText = `마지막 업데이트: ${searchDate.toLocaleString('ko-KR')}`;
 
-    const fetchPromises = keywords.map(keyword => fetchRSS(keyword));
-    const allResults = await Promise.all(fetchPromises);
+    // Show overall loading state only during the first search to avoid flickering
+    if (isInitialSearch) {
+        resultsDiv.innerHTML = '<div class="loading-state"><p>실시간 뉴스를 분석하고 있습니다...</p><div class="spinner"></div></div>';
+    } else {
+        // For refresh clicks, show a subtle loading hint on empty cards
+        const emptyBadges = document.querySelectorAll('.status-badge.empty');
+        emptyBadges.forEach(badge => {
+            badge.textContent = '재검색 중...';
+            badge.classList.add('loading');
+        });
+    }
 
-    renderResults(allResults);
+    // Map each keyword to either its existing result or a new fetch promise
+    const fetchPromises = keywords.map(async (keyword) => {
+        const existingRes = currentResults.find(r => r.keyword === keyword);
+        
+        // Skip fetching if the keyword already has successful results
+        if (existingRes && existingRes.items.length > 0 && !existingRes.error) {
+            return existingRes;
+        }
+
+        // Fetch new data only for empty or error states
+        return await fetchRSS(keyword);
+    });
+
+    // Resolve all promises and update the persistent state
+    currentResults = await Promise.all(fetchPromises);
+
+    // Re-render the UI with the updated collection
+    renderResults(currentResults);
     
     searchBtn.disabled = false;
     searchBtn.textContent = '데이터 새로고침';
